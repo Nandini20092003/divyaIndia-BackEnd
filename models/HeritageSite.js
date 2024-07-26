@@ -1,3 +1,4 @@
+//models\HeritageSite.js
 import mongoose from "mongoose";
 
 const heritageSiteSchema = new mongoose.Schema(

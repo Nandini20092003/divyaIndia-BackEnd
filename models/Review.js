@@ -3,8 +3,14 @@ import mongoose from "mongoose";
 const reviewSchema = new mongoose.Schema(
   {
     productId: {
-      type: mongoose.Types.ObjectId,
-      ref: "Tour",
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      refPath: 'onModel',
+    },
+    onModel: {
+      type: String,
+      required: true,
+      enum: ['Tour', 'HeritageSite'],
     },
     username: {
       type: String,

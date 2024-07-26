@@ -1,3 +1,4 @@
+//controllers\heritageSiteController.js
 import HeritageSite from "../models/HeritageSite.js";
 
 // Create new heritage site

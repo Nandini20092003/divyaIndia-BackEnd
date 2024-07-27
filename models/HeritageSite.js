@@ -1,4 +1,3 @@
-//models\HeritageSite.js
 import mongoose from "mongoose";
 
 const heritageSiteSchema = new mongoose.Schema(
@@ -6,25 +5,12 @@ const heritageSiteSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
-      unique: true,
     },
-    city: {
+    desc: {
       type: String,
-      required: true,
-    },
-    address: {
-      type: String,
-      required: true,
-    },
-    distance: {
-      type: Number,
       required: true,
     },
     photo: {
-      type: String,
-      required: true,
-    },
-    desc: {
       type: String,
       required: true,
     },
@@ -32,20 +18,37 @@ const heritageSiteSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    address: {
+      type: String,
+      required: true,
+    },
+    city: {
+      type: String,
+      required: true,
+    },
+    distance: {
+      type: Number,
+      required: true,
+    },
     maxGroupSize: {
       type: Number,
       required: true,
     },
+    history: {
+      type: String,
+    },
+    geography: {
+      type: String,
+    },
+    additionalDetails: {
+      type: String,
+    },
     reviews: [
       {
-        type: mongoose.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "Review",
       },
     ],
-    featured: {
-      type: Boolean,
-      default: false,
-    },
   },
   { timestamps: true }
 );

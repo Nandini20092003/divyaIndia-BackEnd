@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Tour from "../models/Tour.js";
 import HeritageSite from "../models/HeritageSite.js";
 import Review from "../models/Review.js";
+import User from "../models/User.js";
 
 export const createReview = async (req, res) => {
   const { tourId, siteId } = req.params;
@@ -24,10 +25,13 @@ export const createReview = async (req, res) => {
       return res.status(404).json({ success: false, message: "Review target not found" });
     }
 
+    const account = await User.findById(req.user.id).select("username");
+    if (!account) return res.status(401).json({ success: false, message: "Account no longer exists" });
+
     const savedReview = await Review.create({
       productId: target._id,
       onModel: targetModel,
-      username: req.user.username,
+      username: account.username,
       reviewText,
       rating,
     });

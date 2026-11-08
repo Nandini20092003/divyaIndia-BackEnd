@@ -91,3 +91,15 @@ export const logout = (req, res) => {
   });
   return res.status(200).json({ success: true, message: "Logged out successfully" });
 };
+
+export const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Account no longer exists" });
+    }
+    return res.status(200).json({ success: true, data: publicUser(user) });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to retrieve session" });
+  }
+};

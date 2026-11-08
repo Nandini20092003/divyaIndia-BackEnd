@@ -7,6 +7,7 @@ import "../controllers/bookingController.js";
 import "../controllers/reviewController.js";
 import "../controllers/tourController.js";
 import "../controllers/heritageSiteController.js";
+import "../controllers/authController.js";
 
 process.env.JWT_SECRET_KEY = "test-secret-that-is-long-enough-for-unit-tests-123";
 

@@ -53,6 +53,21 @@ app.use(cors({
   maxAge: 600,
 }));
 
+app.use((req, res, next) => {
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    const origin = req.get("origin");
+    // Browsers send Origin on cross-origin state-changing requests. In production,
+    // require it to prevent cross-site cookie-authenticated writes.
+    if (isProduction && !origin) {
+      return res.status(403).json({ success: false, message: "Request origin is required" });
+    }
+    if (origin && !allowedOrigins.includes(origin)) {
+      return res.status(403).json({ success: false, message: "Request origin not allowed" });
+    }
+  }
+  return next();
+});
+
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 app.use(cookieParser());

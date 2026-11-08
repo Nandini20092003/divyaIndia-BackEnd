@@ -1,7 +1,7 @@
 //controllers\tourController.js
 import Tour from "../models/Tour.js";
 
-const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\import Tour from "../models/Tour.js";
+const escapeRegex = (value) => [...value].map((character) => ".^$*+?()[]{}|".includes(character) || character === String.fromCharCode(92) ? String.fromCharCode(92) + character : character).join("");
 ");
 const parsePage = (value) => {
   const parsed = Number.parseInt(value ?? "0", 10);

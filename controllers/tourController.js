@@ -1,6 +1,28 @@
 //controllers\tourController.js
 import Tour from "../models/Tour.js";
 
+const escapeRegex = (value) => [...value].map((character) => ".^$*+?()[]{}|".includes(character) || character === String.fromCharCode(92) ? String.fromCharCode(92) + character : character).join("");
+const parsePage = (value) => {
+  const parsed = Number.parseInt(value ?? "0", 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? Math.min(parsed, 10000) : 0;
+};
+const parseSearch = (query) => {
+  const city = typeof query.city === "string" ? query.city.trim() : "";
+  const distance = Number(query.distance);
+  const maxGroupSize = Number(query.maxGroupSize);
+  if (city.length < 2 || city.length > 80 ||
+      !Number.isFinite(distance) || distance < 0 ||
+      !Number.isInteger(maxGroupSize) || maxGroupSize < 1 || maxGroupSize > 1000) {
+    return null;
+  }
+  return {
+    city: new RegExp(escapeRegex(city), "i"),
+    distance,
+    maxGroupSize,
+  };
+};
+
+
 //create new tour
 export const createTour = async (req, res) => {
   const newTour = new Tour(req.body);
@@ -83,7 +105,7 @@ export const getSingleTour = async (req, res) => {
 //getAll tour
 export const getAllTour = async (req, res) => {
   //for pagination
-  const page = parseInt(req.query.page);
+  const page = parsePage(req.query.page);
 
   try {
     const tours = await Tour.find({})
@@ -106,20 +128,17 @@ export const getAllTour = async (req, res) => {
 
 //get tours by search
 export const getTourBySearch = async (req, res) => {
-  const city = new RegExp(req.query.city, "i");
-  const distance = parseInt(req.query.distance);
-  const maxGroupSize = parseInt(req.query.maxGroupSize);
+  const filters = parseSearch(req.query);
+  if (!filters) {
+    return res.status(400).json({ success: false, message: "Invalid search filters" });
+  }
 
   try {
     const tours = await Tour.find({
-      city,
-      distance: {
-        $gte: distance,
-      },
-      maxGroupSize: {
-        $gte: maxGroupSize,
-      },
-    }).populate("reviews");
+      city: filters.city,
+      distance: { $gte: filters.distance },
+      maxGroupSize: { $gte: filters.maxGroupSize },
+    }).populate("reviews").limit(50);
     res.status(200).json({
       success: true,
       count: tours.length,

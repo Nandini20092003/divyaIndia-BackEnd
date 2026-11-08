@@ -1,37 +1,72 @@
+import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
+import User from "../models/User.js";
 
-//create new booking
 export const createBooking = async (req, res) => {
-  const newBooking = new Booking(req.body);
+  const { tourName, fullName, phone, guestSize, bookAt } = req.body || {};
+  const phoneValue = String(phone ?? "").trim();
+  const guests = Number(guestSize);
+  const bookingDate = new Date(bookAt);
+
+  if (
+    typeof tourName !== "string" || !tourName.trim() ||
+    typeof fullName !== "string" || fullName.trim().length < 2 ||
+    !/^\d{7,15}$/.test(phoneValue) ||
+    !Number.isInteger(guests) || guests < 1 || guests > 20 ||
+    !bookAt || Number.isNaN(bookingDate.getTime())
+  ) {
+    return res.status(400).json({ success: false, message: "Please provide valid booking details" });
+  }
+
   try {
+    const account = await User.findById(req.user.id).select("username");
+    if (!account) return res.status(401).json({ success: false, message: "Account no longer exists" });
+
+    const newBooking = new Booking({
+      userId: req.user.id,
+      username: account.username,
+      tourName: tourName.trim(),
+      fullName: fullName.trim(),
+      phone: phoneValue,
+      guestSize: guests,
+      bookAt: bookingDate,
+    });
     const savedBooking = await newBooking.save();
-    res.status(200).json({
+    return res.status(201).json({
       success: true,
       message: "Your tour is booked",
       data: savedBooking,
     });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Internal server error" });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to create booking" });
   }
 };
 
-//get single booking
 export const getBooking = async (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ success: false, message: "Invalid booking id" });
+  }
+
   try {
-    const book = await Booking.findById(id);
-    res.status(200).json({ success: true, message: "Successful", data: book });
-  } catch (err) {
-    res.status(404).json({ success: false, message: "Not found" });
+    const filter = req.user.role === "admin"
+      ? { _id: id }
+      : { _id: id, userId: req.user.id };
+    const booking = await Booking.findOne(filter);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+    return res.status(200).json({ success: true, message: "Successful", data: booking });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to fetch booking" });
   }
 };
 
-//get all booking
 export const getAllBooking = async (req, res) => {
   try {
-    const books = await Booking.find();
-    res.status(200).json({ success: true, message: "Successful", data: books });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Internal server error" });
+    const bookings = await Booking.find().sort({ createdAt: -1 }).lean();
+    return res.status(200).json({ success: true, message: "Successful", data: bookings });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to fetch bookings" });
   }
 };

@@ -2,6 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { verifyToken } from "../utils/verifyToken.js";
 import { createRateLimiter } from "../utils/rateLimit.js";
+import "../controllers/userController.js";
+import "../controllers/bookingController.js";
+import "../controllers/reviewController.js";
+import "../controllers/tourController.js";
+import "../controllers/heritageSiteController.js";
 
 process.env.JWT_SECRET_KEY = "test-secret-that-is-long-enough-for-unit-tests-123";
 

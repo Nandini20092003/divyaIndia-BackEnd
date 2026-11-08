@@ -1,100 +1,102 @@
+import mongoose from "mongoose";
 import User from "../models/User.js";
 
-//create new User
-export const createUser = async (req, res) => {
-  const newUser = new User(req.body);
-  try {
-    const savedUser = await newUser.save();
-    res.status(200).json({
-      success: true,
-      message: "Successfully Created",
-      data: savedUser,
-    });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to create. Try again." });
-  }
+const safeUser = (user) => {
+  if (!user) return null;
+  const value = user.toObject ? user.toObject() : { ...user };
+  delete value.password;
+  return value;
 };
 
-//update User
+const isOwnerOrAdmin = (req, id) =>
+  req.user?.role === "admin" || req.user?.id === id;
+
 export const updateUser = async (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ success: false, message: "Invalid user id" });
+  }
+  if (!isOwnerOrAdmin(req, id)) {
+    return res.status(403).json({ success: false, message: "You are not authorized to update this account" });
+  }
+
+  const allowedFields = ["username", "email", "photo"];
+  const updates = Object.fromEntries(
+    Object.entries(req.body || {}).filter(([key]) => allowedFields.includes(key))
+  );
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ success: false, message: "No valid profile fields supplied" });
+  }
+  if (updates.username !== undefined) updates.username = String(updates.username).trim();
+  if (updates.email !== undefined) updates.email = String(updates.email).trim().toLowerCase();
 
   try {
     const updatedUser = await User.findByIdAndUpdate(
       id,
-      {
-        $set: req.body,
-      },
-      { new: true }
-    );
-    res.status(200).json({
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    return res.status(200).json({
       success: true,
-      message: "Successfully Updated",
-      data: updatedUser,
+      message: "Successfully updated",
+      data: safeUser(updatedUser),
     });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to update",
-    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: "Username or email is already in use" });
+    }
+    return res.status(400).json({ success: false, message: "Unable to update profile" });
   }
 };
 
-//delete User
 export const deleteUser = async (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ success: false, message: "Invalid user id" });
+  }
+  if (!isOwnerOrAdmin(req, id)) {
+    return res.status(403).json({ success: false, message: "You are not authorized to delete this account" });
+  }
 
   try {
-    await User.findByIdAndDelete(id);
-    res.status(200).json({
-      success: true,
-      message: "Successfully Deleted",
-    });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete",
-    });
+    const deletedUser = await User.findByIdAndDelete(id);
+    if (!deletedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    return res.status(200).json({ success: true, message: "Successfully deleted" });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to delete account" });
   }
 };
 
-//getSingle User
 export const getSingleUser = async (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ success: false, message: "Invalid user id" });
+  }
+  if (!isOwnerOrAdmin(req, id)) {
+    return res.status(403).json({ success: false, message: "You are not authorized to view this account" });
+  }
 
   try {
-    const user = await User.findById(id);
-    res.status(200).json({
-      success: true,
-      message: "Successfully Fetched",
-      data: user,
-    });
-  } catch (err) {
-    res.status(404).json({
-      success: false,
-      message: "Not Found",
-    });
+    const user = await User.findById(id).select("-password");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    return res.status(200).json({ success: true, message: "Successfully fetched", data: safeUser(user) });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to fetch user" });
   }
 };
 
-//getAll User
 export const getAllUser = async (req, res) => {
-
-
   try {
-    const users = await User.find({})
-
-    res.status(200).json({
-      success: true,
-      message: "Successfully Fetched All Data",
-      data: users,
-    });
-  } catch (err) {
-    res.status(404).json({
-      success: false,
-      message: "Not Found",
-    });
+    const users = await User.find({}).select("-password").lean();
+    return res.status(200).json({ success: true, message: "Successfully fetched users", data: users });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to fetch users" });
   }
 };

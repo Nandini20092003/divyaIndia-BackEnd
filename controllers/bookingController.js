@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
+import User from "../models/User.js";
 
 export const createBooking = async (req, res) => {
   const { tourName, fullName, phone, guestSize, bookAt } = req.body || {};
@@ -18,9 +19,12 @@ export const createBooking = async (req, res) => {
   }
 
   try {
+    const account = await User.findById(req.user.id).select("username");
+    if (!account) return res.status(401).json({ success: false, message: "Account no longer exists" });
+
     const newBooking = new Booking({
       userId: req.user.id,
-      username: req.user.username,
+      username: account.username,
       tourName: tourName.trim(),
       fullName: fullName.trim(),
       phone: phoneValue,

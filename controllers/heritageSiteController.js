@@ -2,7 +2,6 @@
 import HeritageSite from "../models/HeritageSite.js";
 
 const escapeRegex = (value) => [...value].map((character) => ".^$*+?()[]{}|".includes(character) || character === String.fromCharCode(92) ? String.fromCharCode(92) + character : character).join("");
-");
 const parsePage = (value) => {
   const parsed = Number.parseInt(value ?? "0", 10);
   return Number.isInteger(parsed) && parsed >= 0 ? Math.min(parsed, 10000) : 0;

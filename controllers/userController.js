@@ -1,6 +1,3 @@
-import mongoose from "mongoose";
-import User from "../models/User.js";
-
 const safeUser = (user) => {
   if (!user) return null;
   const value = user.toObject ? user.toObject() : { ...user };
@@ -99,4 +96,31 @@ export const getAllUser = async (req, res) => {
   } catch {
     return res.status(500).json({ success: false, message: "Unable to fetch users" });
   }
+};export const createUser = async (req, res) => {
+  const username = String(req.body?.username || "").trim();
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const password = req.body?.password;
+
+  if (username.length < 3 || username.length > 30 ||
+      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) ||
+      typeof password !== "string" || password.length < 8 || password.length > 128) {
+    return res.status(400).json({ success: false, message: "Valid username, email and password are required" });
+  }
+
+  try {
+    const hash = await bcrypt.hash(password, 12);
+    const savedUser = await User.create({ username, email, password: hash });
+    return res.status(201).json({
+      success: true,
+      message: "Successfully created",
+      data: safeUser(savedUser),
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: "Username or email is already in use" });
+    }
+    return res.status(500).json({ success: false, message: "Unable to create user" });
+  }
 };
+
+

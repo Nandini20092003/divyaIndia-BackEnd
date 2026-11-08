@@ -15,34 +15,34 @@ const response = () => ({
   set(name, value) { this.headers[name] = value; return this; },
 });
 
-test("verifyToken rejects requests without a cookie", () => {
+test("verifyToken rejects requests without a cookie", async () => {
   const res = response();
   let called = false;
-  verifyToken({ cookies: {} }, res, () => { called = true; });
+  await verifyToken({ cookies: {} }, res, () => { called = true; });
   assert.equal(res.statusCode, 401);
   assert.equal(called, false);
 });
 
-test("verifyToken accepts a valid signed session", () => {
+test("verifyToken accepts a valid signed session", async () => {
   const token = jwt.sign({ id: "user-1", role: "user" }, process.env.JWT_SECRET_KEY);
   const req = { cookies: { accessToken: token } };
   const res = response();
   let called = false;
-  verifyToken(req, res, () => { called = true; });
+  await verifyToken(req, res, () => { called = true; });
   assert.equal(called, true);
   assert.equal(req.user.id, "user-1");
 });
 
-test("verifyAdmin rejects a normal user", () => {
+test("verifyAdmin rejects a normal user", async () => {
   const token = jwt.sign({ id: "user-1", role: "user" }, process.env.JWT_SECRET_KEY);
   const res = response();
   let called = false;
-  verifyAdmin({ cookies: { accessToken: token } }, res, () => { called = true; });
+  await verifyAdmin({ cookies: { accessToken: token } }, res, () => { called = true; });
   assert.equal(res.statusCode, 403);
   assert.equal(called, false);
 });
 
-test("verifyAdmin allows an administrator", () => {
+test("verifyAdmin allows an administrator", async () => {
   const token = jwt.sign({ id: "admin-1", role: "admin" }, process.env.JWT_SECRET_KEY);
   const res = response();
   let called = false;

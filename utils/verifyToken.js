@@ -1,37 +1,31 @@
 import jwt from "jsonwebtoken";
 
 export const verifyToken = (req, res, next) => {
-  const token = req.cookies.accessToken;
+  const token = req.cookies?.accessToken;
   if (!token) {
-    return res
-      .status(401)
-      .json({ success: false, message: "You are not authenticated!" });
+    return res.status(401).json({ success: false, message: "Authentication required" });
+  }
+  if (!process.env.JWT_SECRET_KEY) {
+    return res.status(500).json({ success: false, message: "Authentication is not configured" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
-    if (err) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Token is not valid!" });
-    }
-    req.user = user;
-    next();
-  });
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET_KEY, {
+      algorithms: ["HS256"],
+    });
+    return next();
+  } catch {
+    return res.status(401).json({ success: false, message: "Session is invalid or expired" });
+  }
 };
 
-export const verifyUser = (req, res, next) => {
-  verifyToken(req, res, next);
-};
+export const verifyUser = (req, res, next) => verifyToken(req, res, next);
 
 export const verifyAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
-    if (req.user.role === "admin") {
-      next();
-    } else {
-      return res.status(403).json({
-        success: false,
-        message: "You are not authorized!",
-      });
+  return verifyToken(req, res, () => {
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Administrator access required" });
     }
+    return next();
   });
 };
